@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Jockey+One&family=Poppins:ital,wght@0,100;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&family=Raleway:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&family=Roboto:ital,wght@0,100;0,300;0,400;0,700;0,900;1,100;1,300;1,400;1,500;1,700;1,900&family=Rubik+80s+Fade&family=Saira+Condensed:wght@100;200;300;400;500;600;700;800;900&family=Saira+Stencil+One&display=swap"
+    rel="stylesheet" />
+
+  <title>API-CRUD</title>
+  <style>
+    * {
+      font-family: "Poppins";
+    }
+
+    body {
+      background: #0c0c0c;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      width: 100%;
+      min-height: 100vh;
+    }
+
+    .container {
+      background: #fff;
+      width: 700px;
+      padding: 30px;
+      border: 1px solid #d7d7d7;
+      border-radius: 20px;
+      margin: 0 auto;
+    }
+
+    form {
+      display: flex;
+      flex-direction: column;
+      margin-bottom: 10px;
+    }
+
+    input[type="text"],
+    textarea {
+      margin-bottom: 10px;
+      padding: 5px;
+      border-radius: 5px;
+      border: 1px solid #ccc;
+      font-size: 16px;
+    }
+
+    button[type="button"] {
+      padding: 5px 10px;
+      border-radius: 5px;
+      border: none;
+      background-color: #008cba;
+      color: #fff;
+      font-size: 16px;
+      cursor: pointer;
+    }
+
+    button[type="button"]:hover {
+      background-color: #006e9f;
+    }
+
+    table {
+      border-collapse: collapse;
+      width: 100%;
+      table-layout: fixed;
+      width: 100%;
+    }
+
+    th,
+    td {
+      text-align: left;
+      padding: 8px;
+      word-wrap: break-word;
+    }
+
+    tr:nth-child(even) {
+      background-color: #f2f2f2;
+    }
+
+    th {
+      background-color: #4caf50;
+      color: white;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="container">
+    <h1>
+      <center>API CRUD</center>
+    </h1>
+    <hr />
+
+    <!-- form to add a new note -->
+    <form>
+      <input type="text" id="title" placeholder="Title" />
+      <textarea id="content" placeholder="Content"></textarea>
+      <button type="button" onclick="addNote()">Add Note</button>
+    </form>
+
+    <!-- table to display notes -->
+    <table id="notes-table">
+      <thead>
+        <tr id="rowElement">
+          <th>Title</th>
+          <th>Content</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody id="notes-table-body"></tbody>
+    </table>
+  </div>
+  <script>
+    // Function to add a note
+    function addNote() {
+      // event.preventDefault();
+      let title = document.getElementById("title").value;
+      let content = document.getElementById("content").value;
+
+      fetch("http://127.0.0.1:5000/notes/add", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ title: title, content: content }),
+      })
+        .then((response) => response.json())
+        .then((data) => {
+          // Add note row to table and clear form
+          addNoteRow(data.id, data.title, data.content);
+          document.getElementById("title").value = "";
+          document.getElementById("content").value = "";
+        });
+    }
+
+    // Function to add a note row to the table
+    function addNoteRow(id, title, content) {
+      // Create table row and cells
+      let row = document.createElement("tr");
+      let titleCell = document.createElement("td");
+      let contentCell = document.createElement("td");
+      let actionsCell = document.createElement("td");
+
+      // Add data to cells
+      titleCell.innerText = title;
+      contentCell.textContent = content;
+
+      // Add buttons to actions cell
+      let updateButton = document.createElement("button");
+      updateButton.textContent = "Update";
+      updateButton.onclick = function (e) {
+        // Update note
+        let rowElement = e.target.parentNode.parentNode;
+        rowElement.children[0].textContent =
+          document.getElementById("title").value;
+        rowElement.children[1].textContent =
+          document.getElementById("content").value;
+
+        document.getElementById("title").value = "";
+        document.getElementById("content").value = "";
+
+        console.log(rowElement.children[0].textContent);
+        fetch(`http://127.0.0.1:5000/notes/${id}`, {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            title: rowElement.children[0].textContent,
+            content: rowElement.children[1].textContent,
+          }),
+        });
+      };
+      actionsCell.appendChild(updateButton);
+
+      //Read values
+
+      let deleteButton = document.createElement("button");
+      deleteButton.textContent = "Delete";
+      deleteButton.onclick = function (e) {
+        deleteNote(id);
+        removeNoteRow(e);
+      };
+      actionsCell.appendChild(deleteButton);
+
+      // Add cells to row and row to table body
+      row.appendChild(titleCell);
+      row.appendChild(contentCell);
+      row.appendChild(actionsCell);
+      document.getElementById("notes-table-body").appendChild(row);
+
+      //SHOW ALL DATA
+    }
+    window.onload = function () {
+      // Get all notes
+      fetch("http://127.0.0.1:5000/notes/all")
+        .then((response) => response.json())
+        .then((data) => {
+          // Add notes to table
+          data.forEach((note) => {
+            addNoteRow(note.id, note.title, note.content);
+          });
+        });
+    };
+
+    //Function to delete a specific note
+
+    function deleteNote(id) {
+      fetch(`http://127.0.0.1:5000/notes/${id}`, {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      })
+        .then((response) => response.json())
+        .then((data) => {
+          // Remove note row from table
+          removeNoteRow(id);
+        });
+    }
+    function removeNoteRow(e) {
+      let row = e.target.parentNode.parentNode;
+      row.remove();
+    }
+  </script>
+   
+</body>
+
+</html>
